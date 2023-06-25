@@ -40,10 +40,20 @@ class ManagerAgent(Agent):
                 print("Received message:", msg.body)
                 data = json.loads(msg.body)
                 if data.get("status") == "DONE":
+                    
+                    # Update server status
+                    conn = sqlite3.connect('database.db')
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE servers SET available_from = ? WHERE server_id = ?",
+                        (data["job_in_progress"], str(msg.sender)))
+                    conn.commit()
+                    conn.close()
+
                     print("Job done!")
-                    pass
-                    #Notify the client that the job is done
-                    # TODO: Notify client
+                    msg = Message(to=data["client_id"])
+                    msg.set_metadata("performative", "inform")
+                    msg.body = "Job done!"
+                    await self.send(msg)
 
                     #Server finished assigned job
                 else:    
@@ -150,7 +160,8 @@ class ManagerAgent(Agent):
                 print("Client accepted proposal")
                 # notify the server to perform the job
                 request = {
-                    "resource_requirements": offer["resource_requirements"]
+                    "resource_requirements": offer["resource_requirements"],
+                    "client_id": str(msg.sender),
                     }
                 print(request)
                 m = Message(to=offer["server_id"])
