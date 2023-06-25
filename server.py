@@ -18,7 +18,7 @@ load_dotenv()
 MANAGER_ADDRESS = os.getenv("MANAGER_ADDRESS")
 MANAGER_ID = "/manager"
 
-JOIN_NETWORK_TIMEOUT = 20
+JOIN_NETWORK_TIMEOUT = 2
 
 class ServerAgent(Agent):
     #Server will be able to perform the task requiring resource_available units or less
@@ -33,7 +33,10 @@ class ServerAgent(Agent):
             msg = await self.receive(timeout=JOIN_NETWORK_TIMEOUT)
             if msg:
                 print("Received message:", msg.body)
-                self.agent.add_behaviour(self.agent.Job())
+                if self.agent.resource_available > 0:
+                    self.agent.add_behaviour(self.agent.Job())
+                else:
+                    print("Bye!")
             else:
                 print("Confirmation timed out! Trying again...")
                 self.agent.add_behaviour(self.agent.JoinNetwork())
@@ -61,9 +64,9 @@ class ServerAgent(Agent):
             await self.send(msg)
         
         async def on_end(self):
+            print("Joining network...")
             self.agent.add_behaviour(self.agent.ConfirmJoinNetwork())
-            
-            
+                      
     class JobCompletion(TimeoutBehaviour):
         async def run(self):
             print("Job completed!")
@@ -77,7 +80,7 @@ class ServerAgent(Agent):
     class Job(CyclicBehaviour):
         async def run(self):
             print("Waiting for job...")
-            msg = await self.receive(timeout=10)
+            msg = await self.receive(timeout=5)
             if msg:
                 print("Received job offer:", msg.body)
 
@@ -90,23 +93,17 @@ class ServerAgent(Agent):
                 
                 self.agent.add_behaviour(self.agent.JobCompletion(start_at=self.agent.job_in_progress))
                 #Add timeout behaviour to wait for job completion
+            
+            #self.kill()
 
+        async def on_end(self):
+            self.agent.resource_available = 0
+            self.agent.add_behaviour(self.agent.JoinNetwork())
 
     async def setup(self):
         print("Server started")
         self.add_behaviour(self.JoinNetwork())
 
-                
-
-    async def on_stop(self):
-        #TODO: Send message to manager to remove me from the list
-        msg = Message(to=MANAGER_ADDRESS + MANAGER_ID)
-        msg.set_metadata("performative", "inform")
-        msg.body = json.dumps({
-            "resource_available": 0,
-                                })
-        await self.send(msg)
-        print("Server stopped")
 
 
 
