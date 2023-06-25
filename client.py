@@ -99,9 +99,7 @@ class ClientAgent(Agent):
         #print(self.is_alive())
         print("ClientAgent started")
         self.add_behaviour(self.OfferRequester())
-                
-        self.add_behaviour(self.OfferReceiver())
-        # self.add_behaviour(self.OfferReceiver(), Template(metadata={"performative": "propose"}))
+        self.add_behaviour(self.OfferReceiver(), Template(metadata={"performative": "propose"}))
 
     async def on_stop(self):
         print("ClientAgent stopped")
