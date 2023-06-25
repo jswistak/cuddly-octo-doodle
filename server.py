@@ -22,7 +22,7 @@ JOIN_NETWORK_TIMEOUT = 2
 
 class ServerAgent(Agent):
     #Server will be able to perform the task requiring resource_available units or less
-    resource_available = 45
+    resource_available = 25
     price_per_unit = 1
 
     job_in_progress = datetime.datetime.now()
@@ -74,6 +74,7 @@ class ServerAgent(Agent):
             msg = Message(to=MANAGER_ADDRESS + MANAGER_ID)
             msg.set_metadata("performative", "inform")
             job["status"] = "DONE"
+            job["job_in_progress"] = self.agent.job_in_progress.isoformat()
             msg.body = json.dumps(job)
             await self.send(msg)
 
@@ -107,5 +108,7 @@ class ServerAgent(Agent):
 
 
 
-c = ServerAgent(os.getenv("MANAGER_ADDRESS") + "/s1", os.getenv("MANAGER_PASSWORD"))
+c = ServerAgent(os.getenv("MANAGER_ADDRESS") + "/s2", os.getenv("MANAGER_PASSWORD"))
 c.start()
+
+
