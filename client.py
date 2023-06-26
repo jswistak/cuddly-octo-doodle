@@ -4,7 +4,14 @@ import random
 import datetime
 import json
 from spade.agent import Agent
-from spade.behaviour import PeriodicBehaviour, FSMBehaviour, State, OneShotBehaviour, TimeoutBehaviour, CyclicBehaviour
+from spade.behaviour import (
+    PeriodicBehaviour,
+    FSMBehaviour,
+    State,
+    OneShotBehaviour,
+    TimeoutBehaviour,
+    CyclicBehaviour,
+)
 from spade.message import Message
 from spade.template import Template
 
@@ -30,13 +37,20 @@ class ClientAgent(Agent):
     class OfferRequester(OneShotBehaviour):
         async def run(self):
             print(
-                f"[{self.agent.getClientName()}] Requesting offers from ManagerAgent matching the resource requirements of {self.agent.resource_requirements}")
+                f"[{self.agent.getClientName()}] Requesting offers from ManagerAgent matching the resource requirements of {self.agent.resource_requirements}"
+            )
 
             msg = Message(to=MANAGER_ADDRESS + MANAGER_ID)
             msg.set_metadata("performative", "cfp")  # Call for proposal
-            msg.body = json.dumps({"resource_requirements": self.agent.resource_requirements,
-                                   "available_in": (datetime.datetime.now() + datetime.timedelta(seconds=self.agent.available_in_seconds)).isoformat()
-                                   })
+            msg.body = json.dumps(
+                {
+                    "resource_requirements": self.agent.resource_requirements,
+                    "available_in": (
+                        datetime.datetime.now()
+                        + datetime.timedelta(seconds=self.agent.available_in_seconds)
+                    ).isoformat(),
+                }
+            )
 
             await self.send(msg)
             print(f"[{self.agent.getClientName()}] Request sent!")
@@ -50,8 +64,10 @@ class ClientAgent(Agent):
     class JobCompletion(OneShotBehaviour):
         async def run(self):
             print(f"[{self.agent.getClientName()}] Waiting for job to complete...")
-            time = (datetime.datetime.fromisoformat(
-                self.agent.offers["available_in"]) - datetime.datetime.now()).total_seconds()
+            time = (
+                datetime.datetime.fromisoformat(self.agent.offers["available_in"])
+                - datetime.datetime.now()
+            ).total_seconds()
             # print(time)
             # 10 seconds timeout backup for any delays
             msg = await self.receive(timeout=time + 2)
@@ -63,8 +79,10 @@ class ClientAgent(Agent):
                 print(f"[{self.agent.getClientName()}] Job timed out!")
 
                 self.agent.job_in_progress = False
-                self.agent.add_behaviour(self.agent.OfferReceiver(
-                ), Template(metadata={"performative": "propose"}))
+                self.agent.add_behaviour(
+                    self.agent.OfferReceiver(),
+                    Template(metadata={"performative": "propose"}),
+                )
                 self.agent.add_behaviour(self.agent.OfferRequester())
 
     # propose
@@ -86,13 +104,20 @@ class ClientAgent(Agent):
             self.agent.offers = json.loads(msg.body)
             # Accept or reject offer logic
             # print("[ClientAgent] ", self.agent.job_in_progress)
-            if self.agent.resource_requirements >= self.agent.offers["price"] and self.agent.job_in_progress == False:
+            if (
+                self.agent.resource_requirements >= self.agent.offers["price"]
+                and self.agent.job_in_progress == False
+            ):
                 print(f"[{self.agent.getClientName()}] Offer accepted!")
                 msg = Message(to=MANAGER_ADDRESS + MANAGER_ID)
                 msg.set_metadata("performative", "accept-proposal")
                 msg.body = json.dumps({"offer": self.agent.offers})
-                print(f"[{self.agent.getClientName()}] Sending message:",
-                      msg.body, "to", msg.to)
+                print(
+                    f"[{self.agent.getClientName()}] Sending message:",
+                    msg.body,
+                    "to",
+                    msg.to,
+                )
                 await self.send(msg)
                 self.agent.job_in_progress = True
                 self.kill(exit_code=0)
@@ -111,8 +136,10 @@ class ClientAgent(Agent):
             # print("[ClientAgent] Finished with exit code {}.".format(self.exit_code))
             if self.agent.job_in_progress == True:
                 print(f"[{self.agent.getClientName()}] Server is starting job...")
-                self.agent.add_behaviour(self.agent.JobCompletion(
-                ), Template(metadata={"performative": "inform"}))
+                self.agent.add_behaviour(
+                    self.agent.JobCompletion(),
+                    Template(metadata={"performative": "inform"}),
+                )
 
             else:
                 print(f"[{self.agent.getClientName()}] No job to start!")
@@ -121,8 +148,9 @@ class ClientAgent(Agent):
     async def setup(self):
         print(f"[{self.getClientName()}] started")
         self.add_behaviour(self.OfferRequester())
-        self.add_behaviour(self.OfferReceiver(), Template(
-            metadata={"performative": "propose"}))
+        self.add_behaviour(
+            self.OfferReceiver(), Template(metadata={"performative": "propose"})
+        )
 
     async def on_stop(self):
         print(f"[{self.getClientName()}] stopped")

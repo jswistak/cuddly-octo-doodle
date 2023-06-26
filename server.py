@@ -5,7 +5,14 @@ import random
 import datetime
 import json
 from spade.agent import Agent
-from spade.behaviour import PeriodicBehaviour, FSMBehaviour, State, OneShotBehaviour, TimeoutBehaviour, CyclicBehaviour
+from spade.behaviour import (
+    PeriodicBehaviour,
+    FSMBehaviour,
+    State,
+    OneShotBehaviour,
+    TimeoutBehaviour,
+    CyclicBehaviour,
+)
 from spade.message import Message
 from spade.template import Template
 
@@ -35,7 +42,8 @@ class ServerAgent(Agent):
     class ConfirmJoinNetwork(OneShotBehaviour):
         async def run(self):
             print(
-                f"[{self.agent.getServerName()}] Waiting for confirmation from manager...")
+                f"[{self.agent.getServerName()}] Waiting for confirmation from manager..."
+            )
             msg = await self.receive(timeout=JOIN_NETWORK_TIMEOUT)
             if msg:
                 print(f"[{self.agent.getServerName()}] Received message:", msg.body)
@@ -45,7 +53,8 @@ class ServerAgent(Agent):
                     print(f"[{self.agent.getServerName()}] Bye!")
             else:
                 print(
-                    f"[{self.agent.getServerName()}] Confirmation timed out! Trying again...")
+                    f"[{self.agent.getServerName()}] Confirmation timed out! Trying again..."
+                )
                 self.agent.add_behaviour(self.agent.JoinNetwork())
 
     class JoinNetwork(OneShotBehaviour):
@@ -84,20 +93,22 @@ class ServerAgent(Agent):
             print(f"[{self.agent.getServerName()}] Waiting for job...")
             msg = await self.receive(timeout=5)
             if msg:
-                print(
-                    f"[{self.agent.getServerName()}] Received job offer:", msg.body)
+                print(f"[{self.agent.getServerName()}] Received job offer:", msg.body)
 
                 # Calculate completion time
                 offer = json.loads(msg.body)
-                completion_time = offer.get(
-                    "resource_requirements") / sqrt(self.agent.resource_available)
-                self.agent.job_in_progress = max(datetime.datetime.now(
-                ), self.agent.job_in_progress) + datetime.timedelta(seconds=completion_time)
+                completion_time = offer.get("resource_requirements") / sqrt(
+                    self.agent.resource_available
+                )
+                self.agent.job_in_progress = max(
+                    datetime.datetime.now(), self.agent.job_in_progress
+                ) + datetime.timedelta(seconds=completion_time)
 
                 self.agent.jobs.append(offer)
 
-                self.agent.add_behaviour(self.agent.JobCompletion(
-                    start_at=self.agent.job_in_progress))
+                self.agent.add_behaviour(
+                    self.agent.JobCompletion(start_at=self.agent.job_in_progress)
+                )
                 # Add timeout behaviour to wait for job completion
 
         async def on_end(self):
